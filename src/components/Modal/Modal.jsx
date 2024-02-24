@@ -1,37 +1,33 @@
-import { Component } from 'react';
+import { useEffect } from 'react';
 import css from './Modal.module.css';
 
-export class Modal extends Component {
-  componentDidMount() {
+const Modal = ({ largeURL, alt, onModalClose }) => {
+  useEffect(() => {
+    const handleEscapeClose = ({ key }) => {
+      if (key !== 'Escape') return;
+      onModalClose();
+    };
     document.querySelector('html').classList.add('no-scroll');
-    document.addEventListener('keydown', this.handleEscapeClose);
-  }
+    document.addEventListener('keydown', handleEscapeClose);
 
-  componentWillUnmount() {
-    document.querySelector('html').classList.remove('no-scroll');
-    document.removeEventListener('keydown', this.handleEscapeClose);
-  }
+    return () => {
+      document.querySelector('html').classList.remove('no-scroll');
+      document.removeEventListener('keydown', handleEscapeClose);
+    };
+  }, [onModalClose]);
 
-  handleEscapeClose = ({ key }) => {
-    if (key !== 'Escape') return;
-    this.props.onModalClose();
-  };
-
-  handleOverlayClose = evt => {
+  const handleOverlayClose = evt => {
     if (evt.target !== evt.currentTarget) return;
-    this.props.onModalClose();
+    onModalClose();
   };
 
-  render() {
-    const { largeURL, alt } = this.props;
-    return (
-      <div className={css.overlay} onClick={this.handleOverlayClose}>
-        <div className={css.modal}>
-          <img src={largeURL} alt={alt} />
-        </div>
+  return (
+    <div className={css.overlay} onClick={handleOverlayClose}>
+      <div className={css.modal}>
+        <img src={largeURL} alt={alt} />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default Modal;

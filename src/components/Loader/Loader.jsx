@@ -12,7 +12,7 @@ const Loader = ({ button }) => {
       wrapperStyle={{
         justifyContent: 'center',
         alignItems: 'center',
-        height: button ? '100%' : 'calc(100vh - 128px)',
+        height: button ? '100%' : 'calc(100vh - 112px)',
       }}
     />
   );

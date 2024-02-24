@@ -1,119 +1,66 @@
-import { Component } from 'react';
-import getImages from 'api/pixabay';
-import css from './App.module.css';
+import { useEffect, useState } from 'react';
+import useImages from 'hooks/useImages';
+import scrollPageDown from 'helpers/scroll-page-down';
 import SearchBar from './SearchBar/SearchBar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Button from './Button/Button';
 import Modal from './Modal/Modal';
 import Loader from './Loader/Loader';
 import Message from './Message/Message';
+import css from './App.module.css';
 
-class App extends Component {
-  STATUS = {
-    IDLE: 'IDLE',
-    PENDING: 'PENDING',
-    SUCCEEDED: 'SUCCEEDED',
-    EMPTY: 'EMPTY',
-    FAILED: 'FAILED',
-  };
+const App = () => {
+  const PER_PAGE = 12;
 
-  PER_PAGE = 12;
+  const {
+    images,
+    query,
+    isLoading,
+    isLoadMore,
+    error,
+    handleLoadMore,
+    handleQueryChange,
+  } = useImages('', 1, PER_PAGE);
 
-  state = {
-    images: [],
-    q: '',
-    page: 1,
-    status: this.STATUS.IDLE,
-    isLoadMore: false,
-    modalData: null,
-  };
+  const [modalData, setModalData] = useState(null);
 
-  componentDidUpdate(_, prevState) {
-    const { q: prevQuery, page: prevPage } = prevState;
-    const { q, page } = this.state;
-    if (prevQuery !== q || prevPage !== page) {
-      this.loadImages();
+  useEffect(() => {
+    if (images.length > PER_PAGE) {
+      scrollPageDown();
     }
-  }
+  }, [images]);
 
-  handleQueryChange = q => {
-    this.setState({ images: [], q, page: 1, isLoadMore: false });
+  const handleModalOpen = modalData => {
+    setModalData(modalData);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const handleModalClose = () => {
+    setModalData(null);
   };
 
-  async loadImages() {
-    const { q, page } = this.state;
-    this.setState({ status: this.STATUS.PENDING });
-    try {
-      const { hits, totalHits } = await getImages({
-        q,
-        page,
-        per_page: this.PER_PAGE,
-      });
+  return (
+    <div className={css.app}>
+      <SearchBar onFormSubmit={handleQueryChange} />
 
-      if (!hits.length) {
-        this.setState({
-          status: this.STATUS.EMPTY,
-        });
-        return;
-      }
+      {images.length !== 0 ? (
+        <ImageGallery onModalOpen={handleModalOpen} images={images} />
+      ) : isLoading ? (
+        <Loader />
+      ) : query ? (
+        <Message>Nothing found...</Message>
+      ) : (
+        <Message>Enter search query to find pictures</Message>
+      )}
 
-      this.setState(prevState => ({
-        images: [...prevState.images, ...hits],
-        isLoadMore: page < Math.ceil(totalHits / this.PER_PAGE),
-        status: this.STATUS.SUCCEEDED,
-      }));
-    } catch (error) {
-      this.setState({ status: this.STATUS.FAILED });
-    }
-  }
+      {isLoadMore && (
+        <Button onLoadMore={handleLoadMore} isLoading={isLoading} />
+      )}
 
-  handleModalOpen = modalData => {
-    this.setState({ modalData });
-  };
+      {modalData && <Modal onModalClose={handleModalClose} {...modalData} />}
 
-  handleModalClose = () => {
-    this.setState({ modalData: null });
-  };
-
-  render() {
-    const { status, images, isLoadMore, modalData } = this.state;
-
-    return (
-      <div className={css.app}>
-        <SearchBar onFormSubmit={this.handleQueryChange} />
-        <ImageGallery onModalOpen={this.handleModalOpen} images={images} />
-
-        {isLoadMore && (
-          <Button
-            onLoadMore={this.handleLoadMore}
-            isLoading={status === this.STATUS.PENDING}
-          />
-        )}
-
-        {modalData && (
-          <Modal onModalClose={this.handleModalClose} {...modalData} />
-        )}
-
-        {status === this.STATUS.IDLE && (
-          <Message>Enter search query to find pictures</Message>
-        )}
-
-        {status === this.STATUS.PENDING && images.length === 0 && <Loader />}
-
-        {status === this.STATUS.EMPTY && <Message>Nothing found...</Message>}
-
-        {status === this.STATUS.FAILED && (
-          <Message warning>Something went wrong...</Message>
-        )}
-      </div>
-    );
-  }
-}
+      {error && <Message warning>Something went wrong...</Message>}
+    </div>
+  );
+};
 
 export default App;
